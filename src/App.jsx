@@ -1008,6 +1008,41 @@ function App() {
     }));
   };
 
+  const resetAuthForm = () => ({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    address: '',
+    captchaAnswer: '',
+    createAdmin: false,
+    adminPassword: '',
+  });
+
+  const resetProfileForm = () => ({
+    displayName: '',
+    profileImage: '',
+    oldPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
+  });
+
+  const resetUserSessionState = () => {
+    const defaultBackground = getDefaultBackgroundColor(theme);
+    setPageBackgroundColor(defaultBackground);
+    localStorage.setItem(`${STORAGE_KEY}-bg-color`, defaultBackground);
+    localStorage.removeItem(`${STORAGE_KEY}-last-custom-bg`);
+    setProfileForm(resetProfileForm());
+    setPaymentForm({
+      owner: '',
+      cardNumber: '',
+      month: 'January',
+      year: '2026',
+      cvv: '',
+    });
+    setAuthForm(resetAuthForm());
+  };
+
   const hasProfileChanges = useMemo(() => {
     if (!currentUser) return false;
 
@@ -1137,6 +1172,7 @@ function App() {
   };
 
   const openCreateAccount = () => {
+    resetUserSessionState();
     setAuthMode('create');
     setShowCustomerAuth(true);
   };
@@ -1213,20 +1249,11 @@ function App() {
         role: authForm.createAdmin ? 'admin' : 'customer',
       };
 
-      setUsers((currentUsers) => [newUser, ...currentUsers]);
+        setUsers((currentUsers) => [newUser, ...currentUsers]);
+      resetUserSessionState();
       setCurrentUserId(newUser.id);
       setCaptchaChallenge(null);
       setShowCustomerAuth(false);
-      setAuthForm({
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        address: '',
-        captchaAnswer: '',
-        createAdmin: false,
-        adminPassword: '',
-      });
       setProfileForm((currentForm) => ({
         ...currentForm,
         displayName: normalizedUsername,
@@ -1259,18 +1286,9 @@ function App() {
       return;
     }
 
+    resetUserSessionState();
     setCurrentUserId(matchedUser.id);
     setShowCustomerAuth(false);
-    setAuthForm({
-      username: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      address: '',
-      captchaAnswer: '',
-      createAdmin: false,
-      adminPassword: '',
-    });
 
     if (matchedUser.role === 'admin') {
       setView('admin');
@@ -1283,9 +1301,19 @@ function App() {
   };
 
   const handleLogout = () => {
-    const restoredBackground = pageBackgroundColor || getDefaultBackgroundColor(theme);
-    localStorage.setItem(`${STORAGE_KEY}-last-custom-bg`, restoredBackground);
-    setPageBackgroundColor(getDefaultBackgroundColor(theme));
+    const restoredBackground = getDefaultBackgroundColor(theme);
+    localStorage.setItem(`${STORAGE_KEY}-bg-color`, restoredBackground);
+    localStorage.removeItem(`${STORAGE_KEY}-last-custom-bg`);
+    setPageBackgroundColor(restoredBackground);
+    setProfileForm(resetProfileForm());
+    setAuthForm(resetAuthForm());
+    setPaymentForm({
+      owner: '',
+      cardNumber: '',
+      month: 'January',
+      year: '2026',
+      cvv: '',
+    });
     setCurrentUserId(null);
     setIsAdminUnlocked(false);
     setSecondaryActionUnlocked(false);
@@ -1627,6 +1655,8 @@ function App() {
                   <span>Username</span>
                   <input
                     type="text"
+                    autoComplete="off"
+                    name="new-username"
                     value={authForm.username}
                     onChange={(event) => handleCustomerAuthChange('username', event.target.value)}
                   />
@@ -1649,6 +1679,8 @@ function App() {
                   <span>Admin password</span>
                   <input
                     type="password"
+                    autoComplete="new-password"
+                    name="admin-password"
                     value={authForm.adminPassword}
                     onChange={(event) => handleCustomerAuthChange('adminPassword', event.target.value)}
                     placeholder="Enter admin password"
@@ -1660,6 +1692,8 @@ function App() {
                 <span>{authMode === 'create' ? 'Email' : 'Username / Email'}</span>
                 <input
                   type="text"
+                  autoComplete="off"
+                  name={authMode === 'create' ? 'account-email' : 'account-login'}
                   value={authMode === 'create' ? authForm.email : authForm.username || authForm.email}
                   onChange={(event) =>
                     handleCustomerAuthChange(authMode === 'create' ? 'email' : 'username', event.target.value)
@@ -1689,6 +1723,8 @@ function App() {
                   <span>Solve the captcha</span>
                   <input
                     type="text"
+                    autoComplete="off"
+                    name="captcha-answer"
                     inputMode="numeric"
                     value={authForm.captchaAnswer}
                     onChange={(event) => handleCustomerAuthChange('captchaAnswer', event.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -1700,6 +1736,8 @@ function App() {
                 <span>Password</span>
                 <input
                   type="password"
+                  autoComplete="new-password"
+                  name="account-password"
                   value={authForm.password}
                   onChange={(event) => handleCustomerAuthChange('password', event.target.value)}
                 />
@@ -1711,6 +1749,8 @@ function App() {
                     <span>Repeat password</span>
                     <input
                       type="password"
+                      autoComplete="new-password"
+                      name="confirm-account-password"
                       value={authForm.confirmPassword}
                       onChange={(event) => handleCustomerAuthChange('confirmPassword', event.target.value)}
                     />
@@ -1720,6 +1760,8 @@ function App() {
                     <span>Home address</span>
                     <input
                       type="text"
+                      autoComplete="off"
+                      name="home-address"
                       value={authForm.address}
                       onChange={(event) => handleCustomerAuthChange('address', event.target.value)}
                     />
@@ -1796,6 +1838,8 @@ function App() {
                   <span>Name</span>
                   <input
                     type="text"
+                    autoComplete="off"
+                    name="profile-display-name"
                     value={profileForm.displayName || currentUser.displayName || currentUser.username}
                     onChange={(event) => handleProfileFormChange('displayName', event.target.value)}
                   />
@@ -1812,6 +1856,8 @@ function App() {
                   <span>Old password</span>
                   <input
                     type="password"
+                    autoComplete="current-password"
+                    name="current-password"
                     value={profileForm.oldPassword}
                     onChange={(event) => handleProfileFormChange('oldPassword', event.target.value)}
                   />
@@ -1821,6 +1867,8 @@ function App() {
                   <span>New password</span>
                   <input
                     type="password"
+                    autoComplete="new-password"
+                    name="new-password"
                     value={profileForm.newPassword}
                     onChange={(event) => handleProfileFormChange('newPassword', event.target.value)}
                   />
@@ -1830,6 +1878,8 @@ function App() {
                   <span>Confirm new password</span>
                   <input
                     type="password"
+                    autoComplete="new-password"
+                    name="confirm-new-password"
                     value={profileForm.confirmNewPassword}
                     onChange={(event) => handleProfileFormChange('confirmNewPassword', event.target.value)}
                   />
